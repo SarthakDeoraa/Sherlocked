@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(dbgenerated("concat('usr_', replace(cast(gen_random_uuid() as text), '-', ''))"))
+  email        String   @unique
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  teamId       String?
+  team         Team?    @relation(fields: [teamId], references: [id])
+  isTeamLeader Boolean  @default(false)
+}
+
+model Team {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  inviteCode  String        @unique @default(cuid())
+  maxMembers  Int           @default(4)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  members     User[]
+  progress    TeamProgress?
+
+  @@map("teams")
+}
+
+model TeamProgress {
+  id             String   @id @default(cuid())
+  teamId         String   @unique
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  currentLevel   Int      @default(1)
+  totalScore     Int      @default(0)
+  startedAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+
+  @@map("team_progress")
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  imageUrl      String?
+  level         Int      @unique
+  points        Int      @default(100)
+  correctAnswer String
+  hints         Json[]   @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("questions")
+}
+
+model Admin {
+  id       String @id @default(dbgenerated("concat('adm_', replace(cast(gen_random_uuid() as text), '-', ''))"))
+  username String @unique
+  password String
+}
+
+enum QuestionType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  FILE_UPLOAD
+  MULTIPLE_CHOICE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+}
