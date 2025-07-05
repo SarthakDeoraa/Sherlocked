@@ -45,6 +45,16 @@ model TeamProgress {
   @@map("team_progress")
 }
 
+model Hint {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  content    String
+  isEnabled  Boolean  @default(true)
+
+  @@map("hints")
+}
+
 model Question {
   id            String   @id @default(cuid())
   title         String
@@ -53,7 +63,7 @@ model Question {
   level         Int      @unique
   points        Int      @default(100)
   correctAnswer String
-  hints         Json[]   @default([])
+  hints         Hint[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

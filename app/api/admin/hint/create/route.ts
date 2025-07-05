@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hintSchema } from "@/lib/validations/question";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { verifyAdminToken } from "@/lib/utils/utils";
 const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
-
+import { verifyAdminToken } from "@/lib/utils/utils";
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify admin authentication
     const adminToken = await verifyAdminToken(req);
     if (!adminToken) {
       return NextResponse.json(
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { questionId, hint } = body;
+    const { questionId, content, isEnabled = true } = body;
 
     // Validate questionId
     if (!questionId || typeof questionId !== "string") {
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate hint data
-    const parsedHint = hintSchema.safeParse(hint);
+    // Validate hint data using Zod
+    const parsedHint = hintSchema.safeParse({ content, isEnabled });
     if (!parsedHint.success) {
       return NextResponse.json(
         { error: "Invalid hint data.", details: parsedHint.error.errors },
@@ -48,35 +48,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get current hints and add the new hint
-    const currentHints = existingQuestion.hints as any[] || [];
-    const newHints = [...currentHints, parsedHint.data];
-
-    // Update the question with the new hints array
-    const updatedQuestion = await prisma.question.update({
-      where: { id: questionId },
+    // Create the hint
+    const hint = await prisma.hint.create({
       data: {
-        hints: newHints,
+        questionId,
+        content: parsedHint.data.content,
+        isEnabled: parsedHint.data.isEnabled,
       },
     });
 
     return NextResponse.json(
       {
-        message: "Hint added successfully.",
-        question: {
-          id: updatedQuestion.id,
-          title: updatedQuestion.title,
-          level: updatedQuestion.level,
-          hints: updatedQuestion.hints,
+        message: "Hint created successfully.",
+        hint: {
+          id: hint.id,
+          content: hint.content,
+          isEnabled: hint.isEnabled,
+          questionId: hint.questionId,
         },
       },
-      { status: 200 }
+      { status: 201 }
     );
   } catch (error) {
-    console.error("Error adding hint:", error);
+    console.error("Error creating hint:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred." },
       { status: 500 }
     );
   }
-}
+} 
