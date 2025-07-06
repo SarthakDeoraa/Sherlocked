@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getToken } from "next-auth/jwt";
 import { answerSchema } from "@/lib/validations/answer";
+import { handleAnswer } from "@/lib/websocket-server";
 
 export async function POST(req: NextRequest) {
   try {
+    const startTime = Date.now(); // Track response time
+    
     // Parse and validate request body using existing zod schema
     const body = await req.json();
     const parseResult = answerSchema.safeParse(body);
@@ -73,6 +76,10 @@ export async function POST(req: NextRequest) {
         data: { lastActivityAt: now },
       });
 
+      // Notify WebSocket server about incorrect answer
+      const responseTime = Date.now() - startTime;
+      await handleAnswer(user.teamId, false, responseTime);
+
       return NextResponse.json(
         { correct: false, message: "Incorrect answer." },
         { status: 200 }
@@ -94,6 +101,7 @@ export async function POST(req: NextRequest) {
           currentLevel: teamProgress.currentLevel + 1,
           totalScore: teamProgress.totalScore + question.points,
           lastActivityAt: now,
+          lastAnswerAt: now, // Track when the answer was submitted
         },
       });
     } else {
@@ -103,9 +111,14 @@ export async function POST(req: NextRequest) {
         data: {
           totalScore: teamProgress.totalScore + question.points,
           lastActivityAt: now,
+          lastAnswerAt: now, // Track when the answer was submitted
         },
       });
     }
+
+    // Notify WebSocket server about correct answer
+    const responseTime = Date.now() - startTime;
+    await handleAnswer(user.teamId, true, responseTime);
 
     return NextResponse.json(
       {

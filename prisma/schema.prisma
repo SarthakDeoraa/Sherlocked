@@ -34,13 +34,14 @@ model Team {
 }
 
 model TeamProgress {
-  id             String   @id @default(cuid())
-  teamId         String   @unique
-  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  currentLevel   Int      @default(1)
-  totalScore     Int      @default(0)
-  startedAt      DateTime @default(now())
-  lastActivityAt DateTime @default(now())
+  id             String    @id @default(cuid())
+  teamId         String    @unique
+  team           Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  currentLevel   Int       @default(1)
+  totalScore     Int       @default(0)
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  lastAnswerAt   DateTime?
 
   @@map("team_progress")
 }
