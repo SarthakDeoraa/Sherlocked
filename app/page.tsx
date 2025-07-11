@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Adjust path as needed
+import { authOptions } from "@/lib/authOptions";
 import { Navbar } from "@/components/ui/navbar";
 import HeroSection from "@/components/hero-section";
 import AboutSection from "@/components/about-section";
