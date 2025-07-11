@@ -42,9 +42,23 @@ const authOptions: NextAuthOptions = {
 
         async session({ session, token }) {
             if (token.id && session.user) {
-                (session.user as any).id = token.id as string
+                (session.user as any).id = token.id as string;
+                // Fetch user from DB to get isTeamLeader, teamId, profilePicture
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.id as string },
+                    select: {
+                        isTeamLeader: true,
+                        teamId: true,
+                        profilePicture: true,
+                    },
+                });
+                if (dbUser) {
+                    (session.user as any).isTeamLeader = dbUser.isTeamLeader;
+                    (session.user as any).teamId = dbUser.teamId;
+                    (session.user as any).profilePicture = dbUser.profilePicture;
+                }
             }
-            return session
+            return session;
         },
 
         async jwt({ token, profile }) {
@@ -69,7 +83,7 @@ const authOptions: NextAuthOptions = {
             return token
         },
         async redirect({ baseUrl }) {
-            return `${baseUrl}/setup`
+            return `${baseUrl}/`
         }
         }
     }

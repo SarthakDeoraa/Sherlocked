@@ -5,7 +5,6 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
 import { verifyAdminToken } from "@/lib/utils/utils";
 
-// Validation schema for toggle hint request
 const toggleHintSchema = z.object({
   hintId: z.string().min(1, "Hint ID is required."),
   isEnabled: z.boolean(),

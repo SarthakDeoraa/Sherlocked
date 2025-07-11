@@ -23,9 +23,10 @@ export function initializeWebSocketServer(port: number = 3001) {
 }
 
 function setupWebSocketServer() {
-  wss.on('connection', (ws: WebSocket) => {
+  wss.on('connection',async (ws: WebSocket) => {
     console.log('New WebSocket connection established');
     clients.add(ws);
+    await sendLeaderboardToClient(ws);
 
     // Send initial leaderboard data
     sendLeaderboardToClient(ws);
@@ -77,7 +78,7 @@ async function handleAnswerSubmitted(data: { teamId: string; isCorrect: boolean;
   }
 }
 
-async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
+export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
   const teams = await prisma.teamProgress.findMany({
     include: {
       team: {

@@ -9,14 +9,15 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(dbgenerated("concat('usr_', replace(cast(gen_random_uuid() as text), '-', ''))"))
-  email        String   @unique
-  name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  teamId       String?
-  team         Team?    @relation(fields: [teamId], references: [id])
-  isTeamLeader Boolean  @default(false)
+  id             String   @id @default(dbgenerated("concat('usr_', replace(cast(gen_random_uuid() as text), '-', ''))"))
+  email          String   @unique
+  name           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  teamId         String?
+  team           Team?    @relation(fields: [teamId], references: [id])
+  isTeamLeader   Boolean  @default(false)
+  profilePicture String?
 }
 
 model Team {

@@ -29,6 +29,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
+    // Prevent creating a new team if user already has a team
+    if (user.teamId) {
+      return NextResponse.json({ error: "You are already in a team" }, { status: 400 });
+    }
+
     // Create the team and connect the current user as a member and team leader
     const team = await prisma.team.create({
       data: {

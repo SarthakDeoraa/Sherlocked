@@ -139,3 +139,51 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    // Authenticate user
+    const token = await getToken({ req });
+    if (!token || !token.email) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    // Find user and their team
+    const user = await prisma.user.findUnique({
+      where: { email: token.email as string },
+      include: { team: true },
+    });
+    if (!user) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+    if (!user.teamId) {
+      return NextResponse.json({ error: "User is not in a team." }, { status: 400 });
+    }
+
+    // Get team progress
+    const teamProgress = await prisma.teamProgress.findUnique({
+      where: { teamId: user.teamId },
+    });
+    if (!teamProgress) {
+      return NextResponse.json({ error: "Team progress not found." }, { status: 404 });
+    }
+
+    // Get the current question for the team's level
+    const question = await prisma.question.findUnique({
+      where: { level: teamProgress.currentLevel },
+    });
+    if (!question) {
+      return NextResponse.json({ error: "No question found for current level." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      level: question.level,
+      title: question.title,
+      imageUrl: question.imageUrl,
+      description: question.description,
+    });
+  } catch (error) {
+    console.error("Error fetching current question:", error);
+    return NextResponse.json({ error: "Failed to fetch current question." }, { status: 500 });
+  }
+}

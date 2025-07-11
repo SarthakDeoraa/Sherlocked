@@ -1,24 +1,26 @@
 import Image from "next/image";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Adjust path as needed
-
-export default async function Home() {
+import { Navbar } from "@/components/ui/navbar";
+import HeroSection from "@/components/hero-section";
+import AboutSection from "@/components/about-section";
+import RulesSection from "@/components/rules-section";
+import Footer from "@/components/ui/footer";
+export default async function HomeFlexbox() {
     const session = await getServerSession(authOptions);
     
     return (
-        <div className="">
-            {session ? (
-                <div>
-                    <h1>Welcome, {session.user?.name || session.user?.email}</h1>
-                    <p>Session data:</p>
-                    <pre>{JSON.stringify(session, null, 2)}</pre>
-                </div>
-            ) : (
-                <div>
-                    <h1>Not signed in</h1>
-                    <p>Please sign in to continue</p>
-                </div>
-            )}
+        <>
+        <div className="min-h-screen flex flex-col">
+            <Navbar />
+            <div className="flex-1 flex items-center justify-center">
+                <HeroSection />
+            </div>
+            
         </div>
+        <AboutSection/>
+        <RulesSection/>
+        <Footer/>
+        </>
     );
 }
