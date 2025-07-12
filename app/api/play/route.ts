@@ -59,22 +59,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No question found for current level." }, { status: 404 });
     }
 
-    // Check if this is the final level and has already been completed
-    const nextQuestion = await prisma.question.findUnique({
-      where: { level: teamProgress.currentLevel + 1 },
-    });
-
-    if (!nextQuestion && teamProgress.lastAnswerAt) {
-      return NextResponse.json(
-        { 
-          correct: false, 
-          message: "Congratulations! You have already completed all levels. The hunt is over!",
-          completed: true 
-        },
-        { status: 200 }
-      );
-    }
-
     if (answer.answer !== question.correctAnswer) {
       await prisma.teamProgress.update({
         where: { teamId: user.teamId },
@@ -89,6 +73,11 @@ export async function POST(req: NextRequest) {
         { status: 200 }
       );
     }
+
+    // Check if this is the final level and has already been completed
+    const nextQuestion = await prisma.question.findUnique({
+      where: { level: teamProgress.currentLevel + 1 },
+    });
 
     const updateData: {
       totalScore: number;
@@ -164,11 +153,16 @@ export async function GET() {
     }
 
     // Check if this is the final level and has been completed
+    // Only mark as completed if there's no next question AND the current level has been answered
     const nextQuestion = await prisma.question.findUnique({
       where: { level: teamProgress.currentLevel + 1 },
     });
 
-    const isCompleted = !nextQuestion && teamProgress.lastAnswerAt;
+    // Check if the current level has been answered (for final level completion)
+    const currentLevelAnswered = teamProgress.lastAnswerAt && 
+      teamProgress.currentLevel === question.level;
+
+    const isCompleted = !nextQuestion && currentLevelAnswered;
 
     return NextResponse.json({
       level: question.level,
