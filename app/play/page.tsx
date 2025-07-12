@@ -21,6 +21,7 @@ interface Question {
   level: number;
   title: string;
   imageUrl?: string;
+  completed?: boolean;
 }
 
 interface HintsData {
@@ -29,6 +30,8 @@ interface HintsData {
 
 interface SubmitResponse {
   correct: boolean;
+  message?: string;
+  completed?: boolean;
 }
 
 export default function PlayPage() {
@@ -76,12 +79,20 @@ export default function PlayPage() {
         queryClient.invalidateQueries({
           queryKey: ["play", "current-question"],
         });
-        if (data?.correct) {
-          toast.success("Correct answer!", {
+        if (data?.completed) {
+          toast.success(
+            data.message ||
+              "🎉 Congratulations! You've completed all levels! 🎉",
+            {
+              style: { background: "#22c55e", color: "white" },
+            }
+          );
+        } else if (data?.correct) {
+          toast.success(data.message || "Correct answer!", {
             style: { background: "#22c55e", color: "white" },
           });
         } else if (data?.correct === false) {
-          toast.error("Try again, wrong answer.", {
+          toast.error(data.message || "Try again, wrong answer.", {
             style: { background: "#ef4444", color: "white" },
           });
         }
@@ -138,26 +149,34 @@ export default function PlayPage() {
                 </div>
               ) : question ? (
                 <>
-                  <div className="text-center text-white text-xl font-semibold mb-2">
-                    {question.title}
-                  </div>
-                  {question.imageUrl && (
-                    <a
-                      href={question.imageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-blue-300 underline text-center mb-2"
-                    >
-                      View Image
-                    </a>
+                  {question?.completed ? (
+                    <div className="text-center text-green-400 text-xl font-semibold mb-4">
+                      🎉 Congratulations! You have completed all levels! 🎉
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-center text-white text-xl font-semibold mb-2">
+                        {question.title}
+                      </div>
+                      {question.imageUrl && (
+                        <a
+                          href={question.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-300 underline text-center mb-2"
+                        >
+                          View Image
+                        </a>
+                      )}
+                      <Input
+                        placeholder="Your answer..."
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        className="bg-white/20 text-white placeholder:text-gray-300 text-center"
+                        disabled={submitMutation.isPending}
+                      />
+                    </>
                   )}
-                  <Input
-                    placeholder="Your answer..."
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    className="bg-white/20 text-white placeholder:text-gray-300 text-center"
-                    disabled={submitMutation.isPending}
-                  />
                 </>
               ) : (
                 <div className="text-gray-300">No question available.</div>
@@ -167,9 +186,18 @@ export default function PlayPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || !question || submitMutation.isPending}
+                disabled={
+                  isLoading ||
+                  !question ||
+                  submitMutation.isPending ||
+                  question?.completed
+                }
               >
-                {submitMutation.isPending ? "Submitting..." : "Submit"}
+                {submitMutation.isPending
+                  ? "Submitting..."
+                  : question?.completed
+                  ? "Completed!"
+                  : "Submit"}
               </Button>
             </CardFooter>
           </form>

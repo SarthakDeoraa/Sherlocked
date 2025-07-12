@@ -134,3 +134,7 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
+
+# Admin signup files (temporary)
+app/admin/signup/
+app/api/admin/signup/
