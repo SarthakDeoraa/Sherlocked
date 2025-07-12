@@ -64,7 +64,7 @@ export default function SetupJoinTeam() {
         }, click on profile to play Sherlocked`
       );
       // Navigate to the main app or dashboard after successful join
-      router.push("/dashboard");
+      router.push("/");
     },
   });
 

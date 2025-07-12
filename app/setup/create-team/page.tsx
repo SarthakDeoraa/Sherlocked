@@ -67,7 +67,7 @@ export default function SetupCreateTeam() {
       toast.success(
         "Your team has been created. Click profile to play or share team code."
       );
-      router.push("/dashboard");
+      router.push("/");
     },
   });
 
