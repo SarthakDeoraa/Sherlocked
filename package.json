@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "websocket": "npx tsx server.ts"
+    "websocket": "npx tsx server.ts",
+     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
