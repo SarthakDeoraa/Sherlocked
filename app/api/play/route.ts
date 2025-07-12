@@ -39,6 +39,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Team progress not found." }, { status: 404 });
     }
 
+    // Check if already completed all levels
+    const totalQuestions = await prisma.question.count();
+    if (teamProgress.currentLevel > totalQuestions) {
+      return NextResponse.json(
+        {
+          correct: true,
+          message: "🎉 Congratulations! You have completed all levels and won the hunt! 🎉",
+          nextLevel: null,
+          totalScore: teamProgress.totalScore,
+          completed: true,
+        },
+        { status: 200 }
+      );
+    }
+
     // Rate limiting
     const now = new Date();
     const timeSinceLastActivity = now.getTime() - teamProgress.lastActivityAt.getTime();
@@ -74,10 +89,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if this is the final level and has already been completed
-    const nextQuestion = await prisma.question.findUnique({
-      where: { level: teamProgress.currentLevel + 1 },
-    });
+    // Get total number of questions and check if current level is the final level
+    const isFinalLevel = teamProgress.currentLevel >= totalQuestions;
 
     const updateData: {
       totalScore: number;
@@ -90,9 +103,8 @@ export async function POST(req: NextRequest) {
       lastAnswerAt: now,
     };
 
-    if (nextQuestion) {
-      updateData.currentLevel = teamProgress.currentLevel + 1;
-    }
+    // Always increment level, even if it's the final level
+    updateData.currentLevel = teamProgress.currentLevel + 1;
 
     const updatedProgress = await prisma.teamProgress.update({
       where: { teamId: user.teamId },
@@ -105,12 +117,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         correct: true,
-        message: nextQuestion
-          ? "Correct! Proceed to the next level."
-          : "🎉 Congratulations! You have completed all levels and won the hunt! 🎉",
-        nextLevel: nextQuestion ? updatedProgress.currentLevel : null,
+        message: isFinalLevel
+          ? "🎉 Congratulations! You have completed all levels and won the hunt! 🎉"
+          : "Correct! Proceed to the next level.",
+        nextLevel: isFinalLevel ? null : updatedProgress.currentLevel,
         totalScore: updatedProgress.totalScore,
-        completed: !nextQuestion,
+        completed: isFinalLevel,
       },
       { status: 200 }
     );
@@ -145,6 +157,19 @@ export async function GET() {
       return NextResponse.json({ error: "Team progress not found." }, { status: 404 });
     }
 
+    const totalQuestions = await prisma.question.count();
+    
+    // Check if already completed all levels (currentLevel > totalQuestions)
+    if (teamProgress.currentLevel > totalQuestions) {
+      return NextResponse.json({
+        level: totalQuestions,
+        title: "Hunt Complete!",
+        imageUrl: null,
+        description: "🎉 Congratulations! You have completed all levels and won the hunt! 🎉",
+        completed: true,
+      });
+    }
+
     const question = await prisma.question.findUnique({
       where: { level: teamProgress.currentLevel },
     });
@@ -152,24 +177,13 @@ export async function GET() {
       return NextResponse.json({ error: "No question found for current level." }, { status: 404 });
     }
 
-    // Check if this is the final level and has been completed
-    // Only mark as completed if there's no next question AND the current level has been answered
-    const nextQuestion = await prisma.question.findUnique({
-      where: { level: teamProgress.currentLevel + 1 },
-    });
-
-    // Check if the current level has been answered (for final level completion)
-    const currentLevelAnswered = teamProgress.lastAnswerAt && 
-      teamProgress.currentLevel === question.level;
-
-    const isCompleted = !nextQuestion && currentLevelAnswered;
-
+    // The hunt is NOT completed yet since we're still within the question range
     return NextResponse.json({
       level: question.level,
       title: question.title,
       imageUrl: question.imageUrl,
       description: question.description,
-      completed: isCompleted,
+      completed: false,
     });
   } catch (error) {
     console.error("Error fetching current question:", error);

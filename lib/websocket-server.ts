@@ -62,7 +62,7 @@ async function handleMessage(ws: WebSocket, message: WebSocketMessage) {
       break;
     case 'ANSWER_SUBMITTED':
       if (message.data) {
-        await handleAnswerSubmitted(message.data);
+      await handleAnswerSubmitted(message.data);
       }
       break;
     default:
