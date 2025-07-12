@@ -57,9 +57,7 @@ export function HintPopup({ hints, isLoading, isError }: HintPopupProps) {
       </Button>
 
       {isOpen && (
-        <div
-          className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 min-w-[260px] max-w-xs"
-        >
+        <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 min-w-[260px] max-w-xs">
           <Card className="bg-white/95 border-none shadow-xl rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -78,9 +76,13 @@ export function HintPopup({ hints, isLoading, isError }: HintPopupProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoading ? (
-                <div className="text-center text-gray-600">Loading hints...</div>
+                <div className="text-center text-gray-600">
+                  Loading hints...
+                </div>
               ) : isError ? (
-                <div className="text-center text-red-600">Failed to load hints.</div>
+                <div className="text-center text-red-600">
+                  Failed to load hints.
+                </div>
               ) : hints.length === 0 ? (
                 <div className="text-center text-gray-600">
                   No hints available yet. Check back later!
@@ -95,7 +97,9 @@ export function HintPopup({ hints, isLoading, isError }: HintPopupProps) {
                       <div className="text-sm font-medium text-yellow-800 mb-1">
                         Hint {index + 1}
                       </div>
-                      <div className="text-sm text-yellow-700">{hint.content}</div>
+                      <div className="text-sm text-yellow-700">
+                        {hint.content}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -106,4 +110,4 @@ export function HintPopup({ hints, isLoading, isError }: HintPopupProps) {
       )}
     </div>
   );
-} 
+}

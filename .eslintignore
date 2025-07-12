@@ -1,0 +1,3 @@
+# Ignore generated Prisma and build files
+app/generated/
+prisma/migrations/ 

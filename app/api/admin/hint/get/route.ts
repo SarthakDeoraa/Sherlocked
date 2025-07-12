@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import jwt, { JwtPayload } from "jsonwebtoken";
-const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
 import { verifyAdminToken } from "@/lib/utils/utils";
 
 const getHintsQuerySchema = z.object({
@@ -12,7 +10,6 @@ const getHintsQuerySchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify admin authentication
     const adminToken = await verifyAdminToken(req);
     if (!adminToken) {
       return NextResponse.json(
@@ -23,9 +20,8 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const questionId = searchParams.get("questionId");
-    const enabledOnly = searchParams.get("enabledOnly") !== "false"; // Default to true
+    const enabledOnly = searchParams.get("enabledOnly") !== "false";
 
-    // Validate query parameters using Zod
     const parsedQuery = getHintsQuerySchema.safeParse({
       questionId,
       enabledOnly,
@@ -40,7 +36,6 @@ export async function GET(req: NextRequest) {
 
     const { questionId: validatedQuestionId, enabledOnly: validatedEnabledOnly } = parsedQuery.data;
 
-    // Check if question exists
     const existingQuestion = await prisma.question.findUnique({
       where: { id: validatedQuestionId },
     });
@@ -52,17 +47,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Build where clause for hints query
     const whereClause = {
       questionId: validatedQuestionId,
       ...(validatedEnabledOnly && { isEnabled: true }),
     };
 
-    // Get hints for the question
     const hints = await prisma.hint.findMany({
       where: whereClause,
       orderBy: { id: "asc" },
     });
+
+    const enabledHintsCount = hints.filter(hint => hint.isEnabled).length;
 
     return NextResponse.json(
       {
@@ -78,8 +73,8 @@ export async function GET(req: NextRequest) {
           questionId: hint.questionId,
         })),
         totalHints: hints.length,
-        enabledHints: hints.filter(hint => hint.isEnabled).length,
-        disabledHints: hints.filter(hint => !hint.isEnabled).length,
+        enabledHints: enabledHintsCount,
+        disabledHints: hints.length - enabledHintsCount,
       },
       { status: 200 }
     );

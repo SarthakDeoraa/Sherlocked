@@ -32,6 +32,7 @@
     "react-dom": "^19.0.0",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
+    "tslint": "^5.20.1",
     "ws": "^8.18.3",
     "zod": "^3.25.67"
   },
@@ -44,6 +45,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "eslint-config-prettier": "^10.1.5",
     "prisma": "^6.11.0",
     "tailwindcss": "^4",
     "tsx": "^4.20.3",

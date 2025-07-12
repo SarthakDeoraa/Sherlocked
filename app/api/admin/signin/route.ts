@@ -2,21 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
-const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
+const JWT_SECRET = process.env.ADMIN_JWT_SECRET!;
+
+interface AdminJwtPayload extends JwtPayload {
+  isAdmin?: boolean;
+}
 
 async function checkAlreadySignedIn(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-  interface AdminJwtPayload extends JwtPayload {
-    isAdmin?: boolean;
-  }
-  if (authHeader && authHeader.startsWith("Bearer ")) {
+  
+  if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as AdminJwtPayload;
-      if (decoded && decoded.isAdmin) {
+      if (decoded?.isAdmin) {
         return NextResponse.redirect(new URL("/admin/dashboard", req.url));
       }
-    } catch (err) {
+    } catch {
+      // Token verification failed
     }
   }
   return null;
@@ -36,7 +39,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find the admin user by username
     const admin = await prisma.admin.findUnique({
       where: { username },
     });
@@ -48,7 +50,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isPasswordValid = await (await import("bcryptjs")).compare(password, admin.password);
+    const { compare } = await import("bcryptjs");
+    const isPasswordValid = await compare(password, admin.password);
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -57,7 +60,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       {
         sub: admin.id,

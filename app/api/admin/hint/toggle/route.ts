@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import jwt, { JwtPayload } from "jsonwebtoken";
-const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
 import { verifyAdminToken } from "@/lib/utils/utils";
 
 const toggleHintSchema = z.object({
@@ -10,10 +8,8 @@ const toggleHintSchema = z.object({
   isEnabled: z.boolean(),
 });
 
-
 export async function PATCH(req: NextRequest) {
   try {
-    // Verify admin authentication
     const adminToken = await verifyAdminToken(req);
     if (!adminToken) {
       return NextResponse.json(
@@ -23,8 +19,6 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-
-    // Validate request body using Zod
     const parsedBody = toggleHintSchema.safeParse(body);
     if (!parsedBody.success) {
       return NextResponse.json(
@@ -35,7 +29,6 @@ export async function PATCH(req: NextRequest) {
 
     const { hintId, isEnabled } = parsedBody.data;
 
-    // Check if hint exists
     const existingHint = await prisma.hint.findUnique({
       where: { id: hintId },
     });
@@ -47,12 +40,9 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Update the hint's enabled status
     const updatedHint = await prisma.hint.update({
       where: { id: hintId },
-      data: {
-        isEnabled,
-      },
+      data: { isEnabled },
     });
 
     return NextResponse.json(

@@ -1,13 +1,15 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useSession, signIn, signOut } from "next-auth/react";
+import type { Session } from "next-auth";
 
 // Fetch session from NextAuth API route for robust React Query integration using axios
 import axios from "axios";
-async function fetchSession() {
+
+async function fetchSession(): Promise<Session | null> {
   try {
     const res = await axios.get("/api/auth/session");
     return res.data;
-  } catch (error: any) {
+  } catch {
     throw new Error("Failed to fetch session");
   }
 }
@@ -19,7 +21,6 @@ export function useAuth() {
   // TanStack Query for full state management and caching
   const {
     data,
-    status,
     isLoading,
     isError,
     error,
@@ -37,7 +38,7 @@ export function useAuth() {
     failureCount,
     dataUpdatedAt,
     errorUpdatedAt,
-  }: UseQueryResult<any, Error> = useQuery({
+  }: UseQueryResult<Session | null, Error> = useQuery({
     queryKey: ["auth", "session"],
     queryFn: fetchSession,
     staleTime: 60 * 1000,

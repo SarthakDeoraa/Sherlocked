@@ -1,9 +1,9 @@
-import { NextAuthOptions } from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
-import { prisma } from '@/lib/prisma'
+import { NextAuthOptions } from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import { prisma } from '@/lib/prisma';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 
 export const authOptions: NextAuthOptions = {
     session: {
@@ -16,9 +16,9 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
-        async signIn({ account, profile }) {
+        async signIn({ profile }) {
             if (!profile?.email) {
-                return false
+                return false;
             }
 
             try {
@@ -31,16 +31,16 @@ export const authOptions: NextAuthOptions = {
                         email: profile.email,
                         name: profile.name
                     },
-                })
-                return true
+                });
+                return true;
             } catch (error) {
-                console.error('Error during sign in:', error)
-                return false
+                console.error('Error during sign in:', error);
+                return false;
             }
         },
         async session({ session, token }) {
             if (token.id && session.user) {
-                (session.user as any).id = token.id as string;
+                session.user.id = token.id as string;
                 // Fetch user from DB to get isTeamLeader, teamId, profilePicture
                 const dbUser = await prisma.user.findUnique({
                     where: { id: token.id as string },
@@ -51,9 +51,9 @@ export const authOptions: NextAuthOptions = {
                     },
                 });
                 if (dbUser) {
-                    (session.user as any).isTeamLeader = dbUser.isTeamLeader;
-                    (session.user as any).teamId = dbUser.teamId;
-                    (session.user as any).profilePicture = dbUser.profilePicture;
+                    session.user.isTeamLeader = dbUser.isTeamLeader;
+                    session.user.teamId = dbUser.teamId || undefined;
+                    session.user.profilePicture = dbUser.profilePicture || undefined;
                 }
             }
             return session;
@@ -65,19 +65,19 @@ export const authOptions: NextAuthOptions = {
                         where: {
                             email: profile.email,
                         },
-                    })
+                    });
 
                     if (!user) {
-                        throw new Error('No user found')
+                        throw new Error('No user found');
                     }
 
-                    token.id = user.id
+                    token.id = user.id;
                 } catch (error) {
-                    console.error('Error in JWT callback:', error)
+                    console.error('Error in JWT callback:', error);
                 }
             }
 
-            return token
+            return token;
         }
     }
-} 
+}; 

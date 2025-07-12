@@ -1,13 +1,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt, { JwtPayload } from "jsonwebtoken";
 import { verifyAdminToken } from "@/lib/utils/utils";
-const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
 
 export async function DELETE(req: NextRequest) {
   try {
-    // Verify admin authentication
     const adminToken = await verifyAdminToken(req);
     if (!adminToken) {
       return NextResponse.json(
@@ -15,6 +12,7 @@ export async function DELETE(req: NextRequest) {
         { status: 401 }
       );
     }
+    
     const { questionId } = await req.json();
 
     if (!questionId) {

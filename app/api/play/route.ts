@@ -6,38 +6,31 @@ import { handleAnswer } from "@/lib/websocket-server";
 
 export async function POST(req: NextRequest) {
   try {
-    const startTime = Date.now(); // Track response time
+    const startTime = Date.now();
     
-    // Parse and validate request body using existing zod schema
     const body = await req.json();
     const parseResult = answerSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: parseResult.error.errors[0].message },
+        { error: parseResult.error.errors[0]?.message || "Invalid input" },
         { status: 400 }
       );
     }
     const answer = parseResult.data;
 
-    // Authenticate user
     const token = await getToken({ req });
-    if (!token || !token.email) {
+    if (!token?.email) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    // Find user
     const user = await prisma.user.findUnique({
-      where: { email: token.email as string },
+      where: { email: token.email },
       include: { team: true },
     });
-    if (!user) {
-      return NextResponse.json({ error: "User not found." }, { status: 404 });
-    }
-    if (!user.teamId) {
-      return NextResponse.json({ error: "User is not in a team." }, { status: 400 });
+    if (!user?.teamId) {
+      return NextResponse.json({ error: "User not in a team." }, { status: 400 });
     }
 
-    // Get team progress
     const teamProgress = await prisma.teamProgress.findUnique({
       where: { teamId: user.teamId },
     });
@@ -45,22 +38,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Team progress not found." }, { status: 404 });
     }
 
-    // Rate limiting: Check if enough time has passed since last activity
+    // Rate limiting
     const now = new Date();
     const timeSinceLastActivity = now.getTime() - teamProgress.lastActivityAt.getTime();
-    const rateLimitMs = 5000; // 5 seconds
+    const rateLimitMs = 5000;
 
     if (timeSinceLastActivity < rateLimitMs) {
       const remainingTime = Math.ceil((rateLimitMs - timeSinceLastActivity) / 1000);
       return NextResponse.json(
-        { 
-          error: `Rate limit exceeded. Please wait ${remainingTime} second(s) before submitting another answer.` 
-        },
+        { error: `Rate limit exceeded. Please wait ${remainingTime} second(s).` },
         { status: 429 }
       );
     }
 
-    // Get the current question for the team's level
     const question = await prisma.question.findUnique({
       where: { level: teamProgress.currentLevel },
     });
@@ -68,15 +58,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No question found for current level." }, { status: 404 });
     }
 
-    // Directly compare the answer as per zod validation (no normalization)
     if (answer.answer !== question.correctAnswer) {
-      // Incorrect answer - still update lastActivityAt for rate limiting
       await prisma.teamProgress.update({
         where: { teamId: user.teamId },
         data: { lastActivityAt: now },
       });
 
-      // Notify WebSocket server about incorrect answer
       const responseTime = Date.now() - startTime;
       await handleAnswer(user.teamId, false, responseTime);
 
@@ -86,37 +73,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Correct answer: update team progress
-    // Get the next question (if any)
     const nextQuestion = await prisma.question.findUnique({
       where: { level: teamProgress.currentLevel + 1 },
     });
 
-    let updatedProgress;
+    const updateData: {
+      totalScore: number;
+      lastActivityAt: Date;
+      lastAnswerAt: Date;
+      currentLevel?: number;
+    } = {
+      totalScore: teamProgress.totalScore + question.points,
+      lastActivityAt: now,
+      lastAnswerAt: now,
+    };
+
     if (nextQuestion) {
-      // There is a next level
-      updatedProgress = await prisma.teamProgress.update({
-        where: { teamId: user.teamId },
-        data: {
-          currentLevel: teamProgress.currentLevel + 1,
-          totalScore: teamProgress.totalScore + question.points,
-          lastActivityAt: now,
-          lastAnswerAt: now, // Track when the answer was submitted
-        },
-      });
-    } else {
-      // No more questions, mark as finished (could add a finishedAt field if needed)
-      updatedProgress = await prisma.teamProgress.update({
-        where: { teamId: user.teamId },
-        data: {
-          totalScore: teamProgress.totalScore + question.points,
-          lastActivityAt: now,
-          lastAnswerAt: now, // Track when the answer was submitted
-        },
-      });
+      updateData.currentLevel = teamProgress.currentLevel + 1;
     }
 
-    // Notify WebSocket server about correct answer
+    const updatedProgress = await prisma.teamProgress.update({
+      where: { teamId: user.teamId },
+      data: updateData,
+    });
+
     const responseTime = Date.now() - startTime;
     await handleAnswer(user.teamId, true, responseTime);
 
@@ -142,25 +122,19 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Authenticate user
     const token = await getToken({ req });
-    if (!token || !token.email) {
+    if (!token?.email) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    // Find user and their team
     const user = await prisma.user.findUnique({
-      where: { email: token.email as string },
+      where: { email: token.email },
       include: { team: true },
     });
-    if (!user) {
-      return NextResponse.json({ error: "User not found." }, { status: 404 });
-    }
-    if (!user.teamId) {
-      return NextResponse.json({ error: "User is not in a team." }, { status: 400 });
+    if (!user?.teamId) {
+      return NextResponse.json({ error: "User not in a team." }, { status: 400 });
     }
 
-    // Get team progress
     const teamProgress = await prisma.teamProgress.findUnique({
       where: { teamId: user.teamId },
     });
@@ -168,7 +142,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Team progress not found." }, { status: 404 });
     }
 
-    // Get the current question for the team's level
     const question = await prisma.question.findUnique({
       where: { level: teamProgress.currentLevel },
     });

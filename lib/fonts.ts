@@ -1,4 +1,4 @@
-import localFont from 'next/font/local'
+import localFont from 'next/font/local';
 
 // Vonca font family configuration
 export const voncaFont = localFont({
@@ -41,4 +41,4 @@ export const voncaFont = localFont({
   ],
   variable: '--font-vonca',
   display: 'swap',
-}) 
+}); 

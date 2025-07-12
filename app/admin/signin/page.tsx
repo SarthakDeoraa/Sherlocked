@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
+
+interface SignInResponse {
+  token: string;
+}
 
 export default function AdminSignIn() {
   const [username, setUsername] = useState("");
@@ -14,21 +18,23 @@ export default function AdminSignIn() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    
     try {
-      const res = await axios.post("/api/admin/signin", { username, password });
-      if (res.data?.token) {
+      const res = await axios.post<SignInResponse>("/api/admin/signin", { username, password });
+      if (res.data.token) {
         localStorage.setItem("admin_jwt", res.data.token);
         router.replace("/admin/dashboard");
       } else {
         setError("Invalid response from server.");
       }
-    } catch (err: any) {
+    } catch (err) {
+      const axiosError = err as AxiosError<{ error: string }>;
       setError(
-        err?.response?.data?.error || "Sign in failed. Please try again."
+        axiosError?.response?.data?.error || "Sign in failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -47,7 +53,7 @@ export default function AdminSignIn() {
               type="text"
               placeholder="Username"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               className="bg-white/20 text-white placeholder:text-gray-300"
               autoFocus
               disabled={loading}
@@ -56,7 +62,7 @@ export default function AdminSignIn() {
               type="password"
               placeholder="Password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               className="bg-white/20 text-white placeholder:text-gray-300"
               disabled={loading}
             />

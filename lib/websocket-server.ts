@@ -7,15 +7,21 @@ interface LeaderboardEntry {
   totalScore: number;
   currentLevel: number;
   lastAnswerAt: string | null;
-  responseTime?: number; // in milliseconds
   rank: number;
 }
 
-// Global variables for WebSocket server state
-let wss: WebSocketServer;
-let clients: Set<WebSocket> = new Set();
+interface WebSocketMessage {
+  type: 'GET_LEADERBOARD' | 'ANSWER_SUBMITTED';
+  data?: {
+    teamId: string;
+    isCorrect: boolean;
+    responseTime: number;
+  };
+}
 
-// Initialize WebSocket server
+let wss: WebSocketServer;
+const clients: Set<WebSocket> = new Set();
+
 export function initializeWebSocketServer(port: number = 3001) {
   wss = new WebSocketServer({ port });
   setupWebSocketServer();
@@ -23,13 +29,10 @@ export function initializeWebSocketServer(port: number = 3001) {
 }
 
 function setupWebSocketServer() {
-  wss.on('connection',async (ws: WebSocket) => {
+  wss.on('connection', async (ws: WebSocket) => {
     console.log('New WebSocket connection established');
     clients.add(ws);
     await sendLeaderboardToClient(ws);
-
-    // Send initial leaderboard data
-    sendLeaderboardToClient(ws);
 
     ws.on('close', () => {
       console.log('WebSocket connection closed');
@@ -43,7 +46,7 @@ function setupWebSocketServer() {
 
     ws.on('message', (data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message: WebSocketMessage = JSON.parse(data.toString());
         handleMessage(ws, message);
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -52,13 +55,15 @@ function setupWebSocketServer() {
   });
 }
 
-async function handleMessage(ws: WebSocket, message: any) {
+async function handleMessage(ws: WebSocket, message: WebSocketMessage) {
   switch (message.type) {
     case 'GET_LEADERBOARD':
       await sendLeaderboardToClient(ws);
       break;
     case 'ANSWER_SUBMITTED':
-      await handleAnswerSubmitted(message.data);
+      if (message.data) {
+        await handleAnswerSubmitted(message.data);
+      }
       break;
     default:
       console.log('Unknown message type:', message.type);
@@ -67,13 +72,11 @@ async function handleMessage(ws: WebSocket, message: any) {
 
 async function handleAnswerSubmitted(data: { teamId: string; isCorrect: boolean; responseTime: number }) {
   if (data.isCorrect) {
-    // Update the team's last answer time
     await prisma.teamProgress.update({
       where: { teamId: data.teamId },
       data: { lastAnswerAt: new Date() },
     });
 
-    // Broadcast updated leaderboard to all clients
     await broadcastLeaderboard();
   }
 }
@@ -89,7 +92,7 @@ export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
     },
     orderBy: [
       { totalScore: 'desc' },
-      { lastAnswerAt: 'asc' }, // Earlier answers rank higher
+      { lastAnswerAt: 'asc' },
     ],
   });
 
@@ -131,7 +134,6 @@ async function broadcastLeaderboard() {
   });
 }
 
-// Public functions to interact with the WebSocket server
 export async function updateLeaderboard() {
   await broadcastLeaderboard();
 }
@@ -140,5 +142,4 @@ export async function handleAnswer(teamId: string, isCorrect: boolean, responseT
   await handleAnswerSubmitted({ teamId, isCorrect, responseTime });
 }
 
-// Initialize the server when this module is imported
 initializeWebSocketServer(); 

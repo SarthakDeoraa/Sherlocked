@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrophyIcon, UsersIcon } from "lucide-react";
 import { Navbar } from "@/components/ui/navbar";
 import axios from "axios";
+import Image from "next/image";
 
 interface LeaderboardEntry {
   teamId: string;
@@ -16,7 +17,6 @@ interface LeaderboardEntry {
   rank: number;
 }
 
-// Fetch leaderboard from API (fallback for SSR or initial load)
 async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const res = await axios.get("/api/leaderboard");
   return res.data;
@@ -24,58 +24,73 @@ async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
 
 export default function LeaderboardPage() {
   const queryClient = useQueryClient();
-  // Use TanStack Query for leaderboard data
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
   const {
     data: leaderboard = [],
     isFetching,
     isError,
     error,
-    refetch,
   } = useQuery<LeaderboardEntry[], Error>({
     queryKey: ["leaderboard"],
     queryFn: fetchLeaderboard,
-    staleTime: 10 * 1000, // 10s
+    staleTime: 10 * 1000,
     refetchOnWindowFocus: true,
   });
-  // Use TanStack Query for connection status
-  const isConnected = queryClient.getQueryData<boolean>(["leaderboard-connection"]) ?? false;
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:3001");
+
     ws.onopen = () => {
-      queryClient.setQueryData(["leaderboard-connection"], true);
+      setIsConnected(true);
       ws.send(JSON.stringify({ type: "GET_LEADERBOARD" }));
     };
+
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
         if (message.type === "LEADERBOARD_UPDATE") {
           queryClient.setQueryData(["leaderboard"], message.data);
         }
-      } catch {}
+      } catch {
+        // Ignore parsing errors
+      }
     };
-    ws.onclose = () => queryClient.setQueryData(["leaderboard-connection"], false);
-    ws.onerror = () => queryClient.setQueryData(["leaderboard-connection"], false);
+
+    ws.onclose = () => setIsConnected(false);
+    ws.onerror = () => setIsConnected(false);
+
     return () => ws.close();
   }, [queryClient]);
+
+  // Show loading state while connection is being established
+  const connectionStatus =
+    isConnected === null ? "Connecting..." : isConnected ? "Live" : "Offline";
+  const connectionClass =
+    isConnected === null
+      ? "bg-yellow-700/80 text-yellow-200"
+      : isConnected
+      ? "bg-green-700/80 text-green-200"
+      : "bg-red-700/80 text-red-200";
 
   return (
     <>
       <Navbar />
       <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-x-hidden">
-        {/* Background overlay (same as landing) */}
         <div className="fixed inset-0 -z-10">
           <div className="absolute inset-0 bg-black opacity-90" />
-          <img
+          <Image
             src="/landing-bg-compnonent-1.png"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-60"
+            fill
+            className="object-cover opacity-60"
             draggable={false}
           />
-          <img
+          <Image
             src="/landing-bg-compononet-2.png"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
+            fill
+            className="object-cover opacity-40"
             draggable={false}
           />
         </div>
@@ -92,20 +107,18 @@ export default function LeaderboardPage() {
                   {leaderboard.length} teams
                 </span>
                 <span
-                  className={`flex items-center gap-2 text-xs px-3 py-1 rounded-full ${
-                    isConnected
-                      ? "bg-green-700/80 text-green-200"
-                      : "bg-red-700/80 text-red-200"
-                  }`}
+                  className={`flex items-center gap-2 text-xs px-3 py-1 rounded-full ${connectionClass}`}
                 >
                   <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                  {isConnected ? "Live" : "Offline"}
+                  {connectionStatus}
                 </span>
               </div>
             </CardHeader>
             <CardContent>
               {isFetching ? (
-                <div className="text-center py-12 text-gray-400 font-vonca text-xl">Loading...</div>
+                <div className="text-center py-12 text-gray-400 font-vonca text-xl">
+                  Loading...
+                </div>
               ) : isError ? (
                 <div className="text-center py-12 text-red-400 font-vonca text-xl">
                   {error?.message || "Failed to load leaderboard."}
@@ -158,4 +171,4 @@ export default function LeaderboardPage() {
       </div>
     </>
   );
-} 
+}

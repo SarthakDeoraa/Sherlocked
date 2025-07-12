@@ -1,40 +1,70 @@
 "use client";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UsersIcon } from "@heroicons/react/24/outline";
 import { Navbar } from "@/components/ui/navbar";
 import axios from "axios";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-export default function SetupJoinTeam({ onSuccess }: { onSuccess?: () => void }) {
+interface JoinTeamResponse {
+  id: string;
+  name: string;
+}
+
+interface SessionData {
+  user: {
+    teamId?: string;
+    isTeamLeader?: boolean;
+  };
+}
+
+export default function SetupJoinTeam() {
   const [inviteCode, setInviteCode] = useState("");
-  const { user, isAuthenticated, signIn } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const joinTeamMutation = useMutation({
-    mutationFn: async ({ inviteCode }: { inviteCode: string }) => {
+    mutationFn: async ({
+      inviteCode,
+    }: {
+      inviteCode: string;
+    }): Promise<JoinTeamResponse> => {
       const res = await axios.post("/api/setup/join-team", { inviteCode });
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: JoinTeamResponse) => {
       setInviteCode("");
-      queryClient.setQueryData(["auth", "session"], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          user: {
-            ...old.user,
-            teamId: data.id,
-            isTeamLeader: false,
-          },
-        };
-      });
-      toast.success(`You have joined ${data?.name || "the team"}, click on profile to play Sherlocked`);
-      if (onSuccess) onSuccess();
+      queryClient.setQueryData(
+        ["auth", "session"],
+        (old: SessionData | null) => {
+          if (!old) return old;
+          return {
+            ...old,
+            user: {
+              ...old.user,
+              teamId: data.id,
+              isTeamLeader: false,
+            },
+          };
+        }
+      );
+      toast.success(
+        `You have joined ${
+          data?.name || "the team"
+        }, click on profile to play Sherlocked`
+      );
+      // Navigate to the main app or dashboard after successful join
+      router.push("/dashboard");
     },
   });
 
@@ -59,7 +89,7 @@ export default function SetupJoinTeam({ onSuccess }: { onSuccess?: () => void })
               <Input
                 placeholder="Invite Code"
                 value={inviteCode}
-                onChange={e => setInviteCode(e.target.value)}
+                onChange={(e) => setInviteCode(e.target.value)}
                 required
                 className="bg-white/20 text-white placeholder:text-gray-300"
               />
@@ -72,7 +102,11 @@ export default function SetupJoinTeam({ onSuccess }: { onSuccess?: () => void })
               )}
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={joinTeamMutation.isPending}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={joinTeamMutation.isPending}
+              >
                 {joinTeamMutation.isPending ? "Joining..." : "Join Team"}
               </Button>
             </CardFooter>

@@ -19,13 +19,28 @@ export default function Footer() {
           {/* Contact Section */}
           <div className="flex flex-col items-center gap-2">
             <div className="flex gap-4 mb-2">
-              <a href="https://github.com/yourprofile" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+              <a
+                href="https://github.com/yourprofile"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+              >
                 <Github className="h-6 w-6 text-white hover:text-blue-400 transition-colors" />
               </a>
-              <a href="https://twitter.com/yourprofile" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+              <a
+                href="https://twitter.com/yourprofile"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Twitter"
+              >
                 <Twitter className="h-6 w-6 text-white hover:text-blue-400 transition-colors" />
               </a>
-              <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+              <a
+                href="https://instagram.com/yourprofile"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
                 <Instagram className="h-6 w-6 text-white hover:text-pink-400 transition-colors" />
               </a>
             </div>

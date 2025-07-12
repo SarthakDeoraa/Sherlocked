@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hintSchema } from "@/lib/validations/question";
-import jwt, { JwtPayload } from "jsonwebtoken";
-const JWT_SECRET: string = process.env.ADMIN_JWT_SECRET!;
 import { verifyAdminToken } from "@/lib/utils/utils";
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify admin authentication
     const adminToken = await verifyAdminToken(req);
     if (!adminToken) {
       return NextResponse.json(
@@ -19,7 +16,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { questionId, content, isEnabled = true } = body;
 
-    // Validate questionId
     if (!questionId || typeof questionId !== "string") {
       return NextResponse.json(
         { error: "Question ID is required." },
@@ -27,7 +23,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate hint data using Zod
     const parsedHint = hintSchema.safeParse({ content, isEnabled });
     if (!parsedHint.success) {
       return NextResponse.json(
@@ -36,7 +31,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if question exists
     const existingQuestion = await prisma.question.findUnique({
       where: { id: questionId },
     });
@@ -48,7 +42,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create the hint
     const hint = await prisma.hint.create({
       data: {
         questionId,

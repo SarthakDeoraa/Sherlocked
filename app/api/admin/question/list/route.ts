@@ -4,7 +4,6 @@ import { verifyAdminToken } from "@/lib/utils/utils";
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify admin authentication
     const adminToken = await verifyAdminToken(req);
     if (!adminToken) {
       return NextResponse.json(
@@ -13,7 +12,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch all questions with their hints
     const questions = await prisma.question.findMany({
       orderBy: { level: "asc" },
       include: {
