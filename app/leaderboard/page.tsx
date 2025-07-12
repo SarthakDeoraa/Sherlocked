@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrophyIcon, UsersIcon } from "lucide-react";
@@ -24,7 +24,6 @@ async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
 
 export default function LeaderboardPage() {
   const queryClient = useQueryClient();
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
   const {
     data: leaderboard = [],
@@ -42,7 +41,6 @@ export default function LeaderboardPage() {
     const ws = new WebSocket("ws://localhost:3001");
 
     ws.onopen = () => {
-      setIsConnected(true);
       ws.send(JSON.stringify({ type: "GET_LEADERBOARD" }));
     };
 
@@ -57,21 +55,10 @@ export default function LeaderboardPage() {
       }
     };
 
-    ws.onclose = () => setIsConnected(false);
-    ws.onerror = () => setIsConnected(false);
-
     return () => ws.close();
   }, [queryClient]);
 
   // Show loading state while connection is being established
-  const connectionStatus =
-    isConnected === null ? "Connecting..." : isConnected ? "Live" : "Offline";
-  const connectionClass =
-    isConnected === null
-      ? "bg-yellow-700/80 text-yellow-200"
-      : isConnected
-      ? "bg-green-700/80 text-green-200"
-      : "bg-red-700/80 text-red-200";
 
   return (
     <>
@@ -105,12 +92,6 @@ export default function LeaderboardPage() {
                 <span className="flex items-center gap-2 text-gray-300">
                   <UsersIcon className="h-5 w-5" />
                   {leaderboard.length} teams
-                </span>
-                <span
-                  className={`flex items-center gap-2 text-xs px-3 py-1 rounded-full ${connectionClass}`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                  {connectionStatus}
                 </span>
               </div>
             </CardHeader>
