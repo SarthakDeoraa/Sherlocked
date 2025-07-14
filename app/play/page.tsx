@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useSession } from "next-auth/react";
 import {
   Card,
   CardHeader,
@@ -35,7 +35,9 @@ interface SubmitResponse {
 }
 
 export default function PlayPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isAuthenticated = status === "authenticated";
   const queryClient = useQueryClient();
   const [answer, setAnswer] = useState("");
 
@@ -126,6 +128,8 @@ export default function PlayPage() {
                   ? "Loading..."
                   : isError
                   ? "Error"
+                  : question?.completed
+                  ? "🎉 Congratulations! 🎉"
                   : question
                   ? `LEVEL - ${question.level}`
                   : "No Question"}
@@ -151,7 +155,7 @@ export default function PlayPage() {
                 <>
                   {question?.completed ? (
                     <div className="text-center text-green-400 text-xl font-semibold mb-4">
-                      🎉 Congratulations! You have completed all levels! 🎉
+                      You have completed all levels! 🎉
                     </div>
                   ) : (
                     <>

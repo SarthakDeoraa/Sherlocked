@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useSession, signIn, signOut } from "next-auth/react";
 import {
   UserCircle2,
   LogOut,
@@ -22,7 +22,10 @@ import axios from "axios";
 import { toast } from "sonner";
 
 export function Navbar() {
-  const { user, isAuthenticated, signIn, signOut, isLoading } = useAuth();
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isAuthenticated = status === "authenticated";
+  const isLoading = status === "loading";
 
   // Only fetch invite code if user is team leader
   const { data: inviteCode, isLoading: isInviteLoading } = useQuery({
